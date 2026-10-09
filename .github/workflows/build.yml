@@ -27,6 +27,7 @@ jobs:
           mkdir -p app/src/main/java/com/lankakey/keyboard
           mkdir -p app/src/main/assets
           mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/xml
 
           cat << 'EOF' > gradle.properties
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
@@ -71,8 +72,8 @@ jobs:
                   applicationId "com.lankakey.keyboard"
                   minSdk 26
                   targetSdk 34
-                  versionCode 1
-                  versionName "1.0.0"
+                  versionCode 2
+                  versionName "2.0.0"
               }
 
               compileOptions {
@@ -99,6 +100,7 @@ jobs:
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
               <string name="app_name">LankaKey Sinhala Keyboard</string>
+              <string name="ime_name">LankaKey (සිංහල · Singlish)</string>
           </resources>
           EOF
 
@@ -108,6 +110,18 @@ jobs:
               <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
               </style>
           </resources>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/xml/method.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <input-method xmlns:android="http://schemas.android.com/apk/res/android"
+              android:settingsActivity="com.lankakey.keyboard.MainActivity"
+              android:supportsSwitchingToNextInputMethod="true">
+              <subtype
+                  android:label="Sinhala (LankaKey)"
+                  android:imeSubtypeLocale="si_LK"
+                  android:imeSubtypeMode="keyboard" />
+          </input-method>
           EOF
 
           cat << 'EOF' > app/src/main/AndroidManifest.xml
@@ -120,14 +134,30 @@ jobs:
                   android:label="@string/app_name"
                   android:supportsRtl="true"
                   android:theme="@style/AppTheme">
+
                   <activity
                       android:name=".MainActivity"
-                      android:exported="true">
+                      android:label="@string/app_name"
+                      android:exported="true"
+                      android:windowSoftInputMode="adjustResize">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
                       </intent-filter>
                   </activity>
+
+                  <service
+                      android:name=".LankaKeyIME"
+                      android:label="@string/ime_name"
+                      android:permission="android.permission.BIND_INPUT_METHOD"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.view.InputMethod" />
+                      </intent-filter>
+                      <meta-data
+                          android:name="android.view.im"
+                          android:resource="@xml/method" />
+                  </service>
               </application>
           </manifest>
           EOF
@@ -135,17 +165,23 @@ jobs:
           cat << 'EOF' > app/src/main/java/com/lankakey/keyboard/MainActivity.java
           package com.lankakey.keyboard;
 
+          import android.content.Intent;
           import android.os.Bundle;
+          import android.provider.Settings;
+          import android.view.inputmethod.InputMethodManager;
+          import android.webkit.JavascriptInterface;
           import android.webkit.WebSettings;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
           import androidx.appcompat.app.AppCompatActivity;
 
           public class MainActivity extends AppCompatActivity {
+              private WebView webView;
+
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  WebView webView = new WebView(this);
+                  webView = new WebView(this);
                   setContentView(webView);
 
                   WebSettings settings = webView.getSettings();
@@ -153,71 +189,506 @@ jobs:
                   settings.setDomStorageEnabled(true);
                   settings.setDatabaseEnabled(true);
 
+                  webView.addJavascriptInterface(new Object() {
+                      @JavascriptInterface
+                      public void openKeyboardSettings() {
+                          try {
+                              Intent intent = new Intent(Settings.ACTION_INPUT_METHOD_SETTINGS);
+                              startActivity(intent);
+                          } catch (Exception e) {
+                              try {
+                                  startActivity(new Intent(Settings.ACTION_SETTINGS));
+                              } catch (Exception ignored) {}
+                          }
+                      }
+
+                      @JavascriptInterface
+                      public void showKeyboardPicker() {
+                          try {
+                              InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+                              if (imm != null) {
+                                  imm.showInputMethodPicker();
+                              }
+                          } catch (Exception ignored) {}
+                      }
+                  }, "AndroidSetup");
+
                   webView.setWebViewClient(new WebViewClient());
                   webView.loadUrl("file:///android_asset/index.html");
               }
           }
           EOF
 
+          cat << 'EOF' > app/src/main/java/com/lankakey/keyboard/LankaKeyIME.java
+          package com.lankakey.keyboard;
+
+          import android.inputmethodservice.InputMethodService;
+          import android.os.Handler;
+          import android.os.Looper;
+          import android.os.Vibrator;
+          import android.text.TextUtils;
+          import android.util.TypedValue;
+          import android.view.KeyEvent;
+          import android.view.View;
+          import android.view.ViewGroup;
+          import android.view.inputmethod.InputConnection;
+          import android.view.inputmethod.InputMethodManager;
+          import android.webkit.JavascriptInterface;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+
+          public class LankaKeyIME extends InputMethodService {
+              private WebView keyboardView;
+              private Handler mainHandler;
+
+              @Override
+              public void onCreate() {
+                  super.onCreate();
+                  mainHandler = new Handler(Looper.getMainLooper());
+              }
+
+              @Override
+              public View onCreateInputView() {
+                  keyboardView = new WebView(this);
+                  WebSettings settings = keyboardView.getSettings();
+                  settings.setJavaScriptEnabled(true);
+                  settings.setDomStorageEnabled(true);
+                  settings.setDatabaseEnabled(true);
+
+                  int heightPx = (int) TypedValue.applyDimension(
+                      TypedValue.COMPLEX_UNIT_DIP, 290, getResources().getDisplayMetrics()
+                  );
+                  keyboardView.setLayoutParams(new ViewGroup.LayoutParams(
+                      ViewGroup.LayoutParams.MATCH_PARENT, heightPx
+                  ));
+
+                  keyboardView.addJavascriptInterface(new Object() {
+                      @JavascriptInterface
+                      public void commitText(final String text) {
+                          mainHandler.post(new Runnable() {
+                              @Override
+                              public void run() {
+                                  InputConnection ic = getCurrentInputConnection();
+                                  if (ic != null && text != null) {
+                                      ic.commitText(text, 1);
+                                  }
+                              }
+                          });
+                      }
+
+                      @JavascriptInterface
+                      public void deleteKey() {
+                          mainHandler.post(new Runnable() {
+                              @Override
+                              public void run() {
+                                  InputConnection ic = getCurrentInputConnection();
+                                  if (ic != null) {
+                                      CharSequence sel = ic.getSelectedText(0);
+                                      if (!TextUtils.isEmpty(sel)) {
+                                          ic.commitText("", 1);
+                                      } else {
+                                          ic.deleteSurroundingText(1, 0);
+                                      }
+                                  }
+                              }
+                          });
+                      }
+
+                      @JavascriptInterface
+                      public void enterKey() {
+                          mainHandler.post(new Runnable() {
+                              @Override
+                              public void run() {
+                                  InputConnection ic = getCurrentInputConnection();
+                                  if (ic != null) {
+                                      ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER));
+                                      ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER));
+                                  }
+                              }
+                          });
+                      }
+
+                      @JavascriptInterface
+                      public void switchKeyboard() {
+                          mainHandler.post(new Runnable() {
+                              @Override
+                              public void run() {
+                                  InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+                                  if (imm != null) {
+                                      imm.showInputMethodPicker();
+                                  }
+                              }
+                          });
+                      }
+
+                      @JavascriptInterface
+                      public void vibrate() {
+                          try {
+                              Vibrator v = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+                              if (v != null) {
+                                  v.vibrate(20);
+                              }
+                          } catch (Exception ignored) {}
+                      }
+                  }, "AndroidIME");
+
+                  keyboardView.setWebViewClient(new WebViewClient());
+                  keyboardView.loadUrl("file:///android_asset/keyboard.html");
+                  return keyboardView;
+              }
+          }
+          EOF
+
+          cat << 'EOF' > app/src/main/assets/keyboard.html
+          <!DOCTYPE html>
+          <html lang="si">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            <title>LankaKey Keyboard</title>
+            <style>
+              * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+              body { background: #0f172a; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; height: 100vh; display: flex; flex-direction: column; justify-content: flex-end; }
+              .bar { height: 38px; background: #1e293b; display: flex; align-items: center; border-bottom: 1px solid #334155; padding: 0 4px; overflow-x: auto; }
+              .bar::-webkit-scrollbar { display: none; }
+              .modes { display: flex; gap: 4px; padding-right: 6px; border-right: 1px solid #334155; margin-right: 4px; flex-shrink: 0; }
+              .mode-btn { background: #334155; color: #94a3b8; border: none; border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer; }
+              .mode-btn.active { background: #f59e0b; color: #0f172a; }
+              .suggestions { display: flex; gap: 6px; align-items: center; flex: 1; overflow-x: auto; padding: 0 4px; }
+              .sug-pill { background: #334155; color: #38bdf8; padding: 4px 10px; border-radius: 8px; font-size: 14px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+              .sug-pill:active { background: #0284c7; color: #fff; }
+              .keypad { display: flex; flex-direction: column; gap: 5px; padding: 6px 4px 8px 4px; background: #0f172a; }
+              .row { display: flex; justify-content: center; gap: 4px; touch-action: manipulation; }
+              .key { flex: 1; max-width: 48px; height: 44px; background: #1e293b; color: #f1f5f9; border: 1px solid #334155; border-radius: 8px; font-size: 16px; font-weight: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
+              .key:active { background: #f59e0b; color: #0f172a; transform: translateY(1px); }
+              .key.wide { flex: 1.5; max-width: 60px; font-size: 13px; font-weight: bold; background: #334155; }
+              .key.action { background: #d97706; color: #fff; }
+              .key.space { flex: 4; max-width: 180px; font-size: 12px; color: #94a3b8; }
+            </style>
+          </head>
+          <body>
+            <div class="bar">
+              <div class="modes">
+                <button id="btn-singlish" class="mode-btn active" onclick="setMode('singlish')">Singlish</button>
+                <button id="btn-sinhala" class="mode-btn" onclick="setMode('sinhala')">සිංහල</button>
+                <button id="btn-eng" class="mode-btn" onclick="setMode('eng')">ABC</button>
+                <button id="btn-num" class="mode-btn" onclick="setMode('num')">?123</button>
+              </div>
+              <div class="suggestions" id="suggestions">
+                <span style="color:#64748b; font-size:11px;">Type in Singlish (e.g. mama -> මම)</span>
+              </div>
+            </div>
+            <div class="keypad" id="keypad"></div>
+
+            <script>
+              let mode = 'singlish';
+              let buffer = '';
+              let caps = false;
+
+              const DICT = {
+                "mama": ["මම"], "mata": ["මට"], "mage": ["මගේ"], "oya": ["ඔයා"], "oyaa": ["ඔයා"], "oyaata": ["ඔයාට"],
+                "api": ["අපි"], "apita": ["අපිට"], "ape": ["අපේ"], "subha": ["සුබ", "සුභ"], "udhasanak": ["උදෑසනක්"],
+                "kohomada": ["කොහොමද"], "sthuthi": ["ස්තූතියි"], "lanka": ["ලංකා"], "sri": ["ශ්‍රී"],
+                "elakiri": ["එළකිරි"], "supiri": ["සුපිරි"], "machan": ["මචං", "මචන්"], "hari": ["හරි"], "ow": ["ඔව්"],
+                "ne": ["නේ"], "baha": ["බැහැ", "බෑ"], "puluwan": ["පුළුවන්"], "dhennam": ["දෙන්නම්"], "karanna": ["කරන්න"]
+              };
+
+              const CONSONANTS = {
+                "k": "ක", "g": "ග", "ch": "ච", "j": "ජ", "t": "ට", "d": "ඩ", "th": "ත", "dh": "ද",
+                "n": "න", "p": "ප", "b": "බ", "m": "ම", "y": "ය", "r": "ර", "l": "ල", "v": "ව",
+                "w": "ව", "s": "ස", "h": "හ", "sh": "ශ"
+              };
+
+              function transliterateSinglish(str) {
+                if (!str) return '';
+                let s = str.toLowerCase();
+                if (DICT[s] && DICT[s].length > 0) return DICT[s][0];
+                let out = '';
+                let i = 0;
+                while (i < s.length) {
+                  let pair = s.substr(i, 2);
+                  if (pair === "th") { out += "ත"; i += 2; continue; }
+                  if (pair === "dh") { out += "ද"; i += 2; continue; }
+                  if (pair === "sh") { out += "ශ"; i += 2; continue; }
+                  if (pair === "ch") { out += "ච"; i += 2; continue; }
+                  let ch = s[i];
+                  if (CONSONANTS[ch]) {
+                    let base = CONSONANTS[ch];
+                    i++;
+                    if (i < s.length) {
+                      let next = s[i];
+                      if (next === 'a') {
+                        if (i + 1 < s.length && s[i+1] === 'a') { out += base + 'ා'; i += 2; }
+                        else { out += base; i++; }
+                      } else if (next === 'i') {
+                        if (i + 1 < s.length && s[i+1] === 'i') { out += base + 'ී'; i += 2; }
+                        else { out += base + 'ි'; i++; }
+                      } else if (next === 'u') {
+                        if (i + 1 < s.length && s[i+1] === 'u') { out += base + 'ූ'; i += 2; }
+                        else { out += base + 'ු'; i++; }
+                      } else if (next === 'e') {
+                        if (i + 1 < s.length && s[i+1] === 'e') { out += base + 'ේ'; i += 2; }
+                        else { out += base + 'ෙ'; i++; }
+                      } else if (next === 'o') {
+                        if (i + 1 < s.length && s[i+1] === 'o') { out += base + 'ෝ'; i += 2; }
+                        else { out += base + 'ො'; i++; }
+                      } else {
+                        out += base + '්';
+                      }
+                    } else {
+                      out += base;
+                    }
+                  } else {
+                    if (ch === 'a') out += 'අ';
+                    else if (ch === 'e') out += 'එ';
+                    else if (ch === 'i') out += 'ඉ';
+                    else if (ch === 'o') out += 'ඔ';
+                    else if (ch === 'u') out += 'උ';
+                    else out += ch;
+                    i++;
+                  }
+                }
+                return out;
+              }
+
+              function renderSuggestions() {
+                const container = document.getElementById('suggestions');
+                if (!buffer) {
+                  container.innerHTML = '<span style="color:#64748b; font-size:11px;">Type in Singlish (e.g. mama -> මම)</span>';
+                  return;
+                }
+                const sinhalaWord = transliterateSinglish(buffer);
+                const dictWords = DICT[buffer.toLowerCase()] || [];
+                let list = [sinhalaWord];
+                dictWords.forEach(w => { if (!list.includes(w)) list.push(w); });
+                list.push(buffer);
+                container.innerHTML = list.map(w => '<div class="sug-pill" onclick="commitWord(\\'' + w.replace(/'/g, "\\\\'") + '\\')">' + w + '</div>').join('');
+              }
+
+              function commitWord(word) {
+                if (window.AndroidIME) {
+                  window.AndroidIME.commitText(word + ' ');
+                  window.AndroidIME.vibrate();
+                }
+                buffer = '';
+                renderSuggestions();
+              }
+
+              function handleKeyPress(ch) {
+                if (window.AndroidIME) window.AndroidIME.vibrate();
+                if (mode === 'singlish') {
+                  buffer += ch;
+                  renderSuggestions();
+                } else {
+                  if (window.AndroidIME) window.AndroidIME.commitText(ch);
+                }
+              }
+
+              function handleSpace() {
+                if (window.AndroidIME) window.AndroidIME.vibrate();
+                if (mode === 'singlish' && buffer.length > 0) {
+                  commitWord(transliterateSinglish(buffer));
+                } else {
+                  if (window.AndroidIME) window.AndroidIME.commitText(' ');
+                }
+              }
+
+              function handleBackspace() {
+                if (window.AndroidIME) window.AndroidIME.vibrate();
+                if (mode === 'singlish' && buffer.length > 0) {
+                  buffer = buffer.slice(0, -1);
+                  renderSuggestions();
+                } else {
+                  if (window.AndroidIME) window.AndroidIME.deleteKey();
+                }
+              }
+
+              function handleEnter() {
+                if (window.AndroidIME) window.AndroidIME.vibrate();
+                if (mode === 'singlish' && buffer.length > 0) {
+                  commitWord(transliterateSinglish(buffer));
+                }
+                if (window.AndroidIME) window.AndroidIME.enterKey();
+              }
+
+              function handleSwitch() {
+                if (window.AndroidIME) window.AndroidIME.switchKeyboard();
+              }
+
+              function setMode(m) {
+                mode = m;
+                ['singlish', 'sinhala', 'eng', 'num'].forEach(id => {
+                  const btn = document.getElementById('btn-' + id);
+                  if (btn) btn.classList.toggle('active', id === m);
+                });
+                buffer = '';
+                renderSuggestions();
+                renderKeypad();
+              }
+
+              function renderKeypad() {
+                const container = document.getElementById('keypad');
+                if (mode === 'singlish' || mode === 'eng') {
+                  const rows = [
+                    ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+                    ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+                    ['caps', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'del'],
+                    ['globe', 'mode_num', 'space', 'enter']
+                  ];
+                  container.innerHTML = rows.map(r => {
+                    return '<div class="row">' + r.map(k => {
+                      if (k === 'caps') return '<div class="key wide" onclick="caps=!caps; renderKeypad();">' + (caps ? '⇪' : '⇧') + '</div>';
+                      if (k === 'del') return '<div class="key wide action" onclick="handleBackspace()">⌫</div>';
+                      if (k === 'globe') return '<div class="key wide" onclick="handleSwitch()">🌐</div>';
+                      if (k === 'mode_num') return '<div class="key wide" onclick="setMode(\\'num\\')">?123</div>';
+                      if (k === 'space') return '<div class="key space" onclick="handleSpace()">␣ Space</div>';
+                      if (k === 'enter') return '<div class="key wide action" onclick="handleEnter()">⏎</div>';
+                      const char = caps ? k.toUpperCase() : k;
+                      return '<div class="key" onclick="handleKeyPress(\\'' + char + '\\')">' + char + '</div>';
+                    }).join('') + '</div>';
+                  }).join('');
+                } else if (mode === 'sinhala') {
+                  const rows = [
+                    ['අ', 'ආ', 'ඇ', 'ඈ', 'ඉ', 'ඊ', 'උ', 'ඌ', 'එ', 'ඒ', 'ඔ', 'ඕ'],
+                    ['ක', 'ග', 'ච', 'ජ', 'ට', 'ඩ', 'ණ', 'ත', 'ද', 'න', 'ප', 'බ'],
+                    ['ම', 'ය', 'ර', 'ල', 'ව', 'ස', 'හ', 'ළ', 'ඳ', 'ඟ', 'ඤ', 'ඥ'],
+                    ['්', 'ා', 'ැ', 'ෑ', 'ි', 'ී', 'ු', 'ූ', 'ෙ', 'ේ', 'ෛ', 'ො', 'del'],
+                    ['globe', 'mode_sing', 'space', 'enter']
+                  ];
+                  container.innerHTML = rows.map(r => {
+                    return '<div class="row">' + r.map(k => {
+                      if (k === 'del') return '<div class="key wide action" onclick="handleBackspace()">⌫</div>';
+                      if (k === 'globe') return '<div class="key wide" onclick="handleSwitch()">🌐</div>';
+                      if (k === 'mode_sing') return '<div class="key wide" onclick="setMode(\\'singlish\\')">Singlish</div>';
+                      if (k === 'space') return '<div class="key space" onclick="handleSpace()">␣ Space</div>';
+                      if (k === 'enter') return '<div class="key wide action" onclick="handleEnter()">⏎</div>';
+                      return '<div class="key" onclick="handleKeyPress(\\'' + k + '\\')">' + k + '</div>';
+                    }).join('') + '</div>';
+                  }).join('');
+                } else if (mode === 'num') {
+                  const rows = [
+                    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+                    ['@', '#', '$', '%', '&', '-', '+', '(', ')', '/'],
+                    ['*', '"', "'", ':', ';', '!', '?', ',', '.', 'del'],
+                    ['mode_sing', 'globe', 'space', 'enter']
+                  ];
+                  container.innerHTML = rows.map(r => {
+                    return '<div class="row">' + r.map(k => {
+                      if (k === 'del') return '<div class="key wide action" onclick="handleBackspace()">⌫</div>';
+                      if (k === 'globe') return '<div class="key wide" onclick="handleSwitch()">🌐</div>';
+                      if (k === 'mode_sing') return '<div class="key wide" onclick="setMode(\\'singlish\\')">ABC/සිං</div>';
+                      if (k === 'space') return '<div class="key space" onclick="handleSpace()">␣ Space</div>';
+                      if (k === 'enter') return '<div class="key wide action" onclick="handleEnter()">⏎</div>';
+                      return '<div class="key" onclick="handleKeyPress(\\'' + k + '\\')">' + k + '</div>';
+                    }).join('') + '</div>';
+                  }).join('');
+                }
+              }
+
+              renderKeypad();
+              renderSuggestions();
+            </script>
+          </body>
+          </html>
+          EOF
+
           cat << 'EOF' > app/src/main/assets/index.html
           <!DOCTYPE html>
-          <html lang="en">
+          <html lang="si">
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
             <title>LankaKey Sinhala Keyboard</title>
             <style>
               * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-              body { background: #030712; color: #f9fafb; min-height: 100vh; display: flex; flex-direction: column; padding: 16px; }
-              .header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #1f2937; margin-bottom: 16px; }
-              .title { font-size: 18px; font-weight: 800; color: #f59e0b; display: flex; align-items: center; gap: 8px; }
-              .badge { font-size: 10px; background: #065f46; color: #6ee7b7; padding: 2px 8px; border-radius: 999px; font-weight: 700; }
-              .input-box { width: 100%; height: 140px; background: #111827; border: 1.5px solid #374151; border-radius: 14px; color: #fff; font-size: 18px; padding: 14px; outline: none; resize: none; margin-bottom: 12px; }
-              .input-box:focus { border-color: #f59e0b; }
-              .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-              .chip { background: #1f2937; color: #e5e7eb; border: 1px solid #374151; padding: 8px 14px; border-radius: 10px; font-size: 14px; cursor: pointer; transition: all 0.1s; }
-              .chip:active { background: #f59e0b; color: #000; transform: scale(0.96); }
-              .action-btn { flex: 1; background: #f59e0b; color: #030712; border: none; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; }
-              .sec-btn { background: #374151; color: #fff; border: none; padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer; }
+              body { background: #030712; color: #f9fafb; min-height: 100vh; display: flex; flex-direction: column; padding: 18px 16px; }
+              .header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 14px; border-bottom: 1px solid #1f2937; margin-bottom: 16px; }
+              .title { font-size: 20px; font-weight: 800; color: #f59e0b; display: flex; align-items: center; gap: 8px; }
+              .badge { font-size: 10px; background: #065f46; color: #6ee7b7; padding: 3px 8px; border-radius: 999px; font-weight: 700; text-transform: uppercase; }
+              .wizard { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+              .step-card { background: #111827; border: 1.5px solid #1f2937; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+              .step-card.active-card { border-color: #f59e0b; background: #181d29; }
+              .step-num { font-size: 11px; font-weight: 800; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px; }
+              .step-title { font-size: 15px; font-weight: 700; color: #fff; }
+              .step-desc { font-size: 12px; color: #9ca3af; line-height: 1.4; }
+              .btn-step { background: linear-gradient(135deg, #f59e0b, #d97706); color: #030712; border: none; padding: 12px 16px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25); }
+              .btn-step:active { transform: scale(0.98); }
+              .btn-step.step2 { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25); }
+              .test-box { width: 100%; height: 90px; background: #030712; border: 2px dashed #4b5563; border-radius: 12px; color: #f59e0b; font-size: 17px; padding: 12px; outline: none; resize: none; }
+              .test-box:focus { border-color: #10b981; border-style: solid; }
+              .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 16px 0; }
+              .chip { background: #1f2937; color: #e5e7eb; border: 1px solid #374151; padding: 7px 12px; border-radius: 10px; font-size: 13px; cursor: pointer; }
+              .chip:active { background: #f59e0b; color: #000; }
               .footer { margin-top: auto; padding-top: 16px; text-align: center; font-size: 11px; color: #6b7280; }
             </style>
           </head>
           <body>
             <div class="header">
-              <div class="title">🇱🇰 LankaKey <span class="badge">PRO</span></div>
-              <span style="font-size:12px;color:#9ca3af;">Singlish & Sinhala</span>
+              <div class="title">🇱🇰 LankaKey <span class="badge">PRO IME</span></div>
+              <span style="font-size:12px;color:#9ca3af;">Sinhala Keyboard Setup</span>
             </div>
-            <textarea id="output" class="input-box" placeholder="Type here in Singlish (e.g. subha -> සුබ)..."></textarea>
-            <div style="font-size:12px;color:#9ca3af;margin-bottom:8px;font-weight:600;">⚡ Quick Sinhala Badges:</div>
-            <div class="btn-row">
-              <button class="chip" onclick="addText('සුබ උදෑසනක්! ☀️')">සුබ උදෑසනක්</button>
-              <button class="chip" onclick="addText('ස්තූතියි! 🙏')">ස්තූතියි</button>
-              <button class="chip" onclick="addText('කොහොමද? 😊')">කොහොමද</button>
-              <button class="chip" onclick="addText('සුබ පැතුම්! 🎉')">සුබ පැතුම්</button>
-              <button class="chip" onclick="addText('මම එන්නම් 👍')">මම එන්නම්</button>
-              <button class="chip" onclick="addText('අඩෝ නෝ! 😱')">අඩෝ නෝ!</button>
-              <button class="chip" onclick="addText('මොකද්ද බං 😂')">මොකද්ද බං</button>
-              <button class="chip" onclick="addText('හරි මචං 🔥')">හරි මචං</button>
+
+            <div class="wizard">
+              <div class="step-card active-card">
+                <div class="step-num">පියවර 1 • Step 1</div>
+                <div class="step-title">⚙️ Enable Keyboard in Settings</div>
+                <div class="step-desc">සැකසුම් වෙත ගොස් <strong>"LankaKey Sinhala Keyboard"</strong> සක්‍රීය (Turn ON) කරන්න.</div>
+                <button class="btn-step" onclick="openSettings()">
+                  <span>👉 1. Open Keyboard Settings</span>
+                </button>
+              </div>
+
+              <div class="step-card">
+                <div class="step-num">පියවර 2 • Step 2</div>
+                <div class="step-title">⌨️ Switch Active Keyboard</div>
+                <div class="step-desc">යතුරුපුවරු ලැයිස්තුවෙන් <strong>"LankaKey Sinhala Keyboard"</strong> තෝරන්න.</div>
+                <button class="btn-step step2" onclick="pickKeyboard()">
+                  <span>👉 2. Select LankaKey as Keyboard</span>
+                </button>
+              </div>
+
+              <div class="step-card">
+                <div class="step-num">පියවර 3 • Step 3</div>
+                <div class="step-title">✍️ Test Typing Sinhala Here!</div>
+                <div class="step-desc">පහත කොටුව මත tap කළ විට LankaKey යතුරුපුවරුව විවෘත වේ:</div>
+                <textarea class="test-box" placeholder="මෙතැන tap කර සිංහලෙන් ටයිප් කරන්න (e.g. subha -> සුබ, mama -> මම)..."></textarea>
+              </div>
             </div>
-            <div style="display:flex;gap:8px;">
-              <button class="action-btn" onclick="copyText()">📋 Copy Text</button>
-              <button class="sec-btn" onclick="clearText()">Clear</button>
+
+            <div style="font-size:12px;color:#9ca3af;margin-bottom:6px;font-weight:600;">⚡ Quick Sinhala Badges:</div>
+            <div class="chip-row">
+              <button class="chip" onclick="copyBadge('සුබ උදෑසනක්! ☀️')">සුබ උදෑසනක් ☀️</button>
+              <button class="chip" onclick="copyBadge('ස්තූතියි! 🙏')">ස්තූතියි 🙏</button>
+              <button class="chip" onclick="copyBadge('කොහොමද? 😊')">කොහොමද? 😊</button>
+              <button class="chip" onclick="copyBadge('සුබ පැතුම්! 🎉')">සුබ පැතුම්! 🎉</button>
+              <button class="chip" onclick="copyBadge('හරි මචං 🔥')">හරි මචං 🔥</button>
             </div>
-            <div class="footer">LankaKey Android Edition • 100% Free & Offline</div>
+
+            <div class="footer">
+              LankaKey Android IME • Ready for WhatsApp, Messenger, YouTube & Chrome
+            </div>
+
             <script>
-              function addText(t) {
-                const el = document.getElementById('output');
-                el.value = el.value ? el.value + ' ' + t : t;
-                el.focus();
+              function openSettings() {
+                if (window.AndroidSetup && window.AndroidSetup.openKeyboardSettings) {
+                  window.AndroidSetup.openKeyboardSettings();
+                } else {
+                  alert("Please open your phone's Settings -> System -> Languages & Input -> Manage keyboards, and turn ON LankaKey.");
+                }
               }
-              function clearText() {
-                document.getElementById('output').value = '';
+
+              function pickKeyboard() {
+                if (window.AndroidSetup && window.AndroidSetup.showKeyboardPicker) {
+                  window.AndroidSetup.showKeyboardPicker();
+                } else {
+                  alert("Please tap your phone's keyboard switch icon or go to Settings to select LankaKey.");
+                }
               }
-              function copyText() {
-                const el = document.getElementById('output');
-                if (!el.value) return;
-                navigator.clipboard.writeText(el.value).then(() => {
-                  alert('Copied to clipboard!');
+
+              function copyBadge(txt) {
+                navigator.clipboard.writeText(txt).then(() => {
+                  alert("Copied: " + txt);
                 });
               }
             </script>

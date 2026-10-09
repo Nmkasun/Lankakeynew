@@ -7,15 +7,21 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build Android APK
+      - name: Accept Android SDK Licenses
+        run: |
+          mkdir -p "$ANDROID_HOME/licenses" || true
+          printf "24333f8a63b6825ea9c5514f83c2829b004d1fee\nd56f5187479451eabf01fb78af6dfcb131a6481e\n" > "$ANDROID_HOME/licenses/android-sdk-license"
+          printf "84831b9409646a918e30573bab4c9c91346d8abd\n" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
+
+      - name: Generate Android Project
         run: |
           mkdir -p app/src/main/java/com/lankakey/keyboard
           mkdir -p app/src/main/assets
@@ -27,23 +33,31 @@ jobs:
 
           cat << 'EOF' > build.gradle
           buildscript {
-              repositories { google(); mavenCentral() }
+              repositories {
+                  google()
+                  mavenCentral()
+              }
               dependencies {
                   classpath 'com.android.tools.build:gradle:8.2.2'
-                  classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22'
               }
           }
           allprojects {
-              repositories { google(); mavenCentral() }
+              repositories {
+                  google()
+                  mavenCentral()
+              }
           }
           EOF
 
           cat << 'EOF' > app/build.gradle
-          apply plugin: 'com.android.application'
-          apply plugin: 'kotlin-android'
+          plugins {
+              id 'com.android.application'
+          }
+
           android {
               namespace 'com.lankakey.keyboard'
               compileSdk 34
+
               defaultConfig {
                   applicationId "com.lankakey.keyboard"
                   minSdk 26
@@ -51,15 +65,23 @@ jobs:
                   versionCode 1
                   versionName "1.0.0"
               }
-              buildTypes { release { minifyEnabled false } }
+
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
                   targetCompatibility JavaVersion.VERSION_17
               }
-              kotlinOptions { jvmTarget = '17' }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+                  debug {
+                      minifyEnabled false
+                  }
+              }
           }
+
           dependencies {
-              implementation 'androidx.core:core-ktx:1.12.0'
               implementation 'androidx.appcompat:appcompat:1.6.1'
           }
           EOF
@@ -67,13 +89,16 @@ jobs:
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.VIBRATE" />
               <application
                   android:allowBackup="true"
                   android:label="LankaKey Sinhala Keyboard"
                   android:supportsRtl="true"
                   android:theme="@style/Theme.AppCompat.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
@@ -83,42 +108,115 @@ jobs:
           </manifest>
           EOF
 
-          cat << 'EOF' > app/src/main/java/com/lankakey/keyboard/MainActivity.kt
-          package com.lankakey.keyboard
-          import android.os.Bundle
-          import android.webkit.WebView
-          import android.webkit.WebViewClient
-          import androidx.appcompat.app.AppCompatActivity
-          class MainActivity : AppCompatActivity() {
-              override fun onCreate(savedInstanceState: Bundle?) {
-                  super.onCreate(savedInstanceState)
-                  val webView = WebView(this)
-                  setContentView(webView)
-                  webView.settings.javaScriptEnabled = true
-                  webView.settings.domStorageEnabled = true
-                  webView.webViewClient = WebViewClient()
-                  webView.loadUrl("file:///android_asset/index.html")
+          cat << 'EOF' > app/src/main/java/com/lankakey/keyboard/MainActivity.java
+          package com.lankakey.keyboard;
+
+          import android.os.Bundle;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+          import androidx.appcompat.app.AppCompatActivity;
+
+          public class MainActivity extends AppCompatActivity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  WebView webView = new WebView(this);
+                  setContentView(webView);
+
+                  WebSettings settings = webView.getSettings();
+                  settings.setJavaScriptEnabled(true);
+                  settings.setDomStorageEnabled(true);
+                  settings.setDatabaseEnabled(true);
+
+                  webView.setWebViewClient(new WebViewClient());
+                  webView.loadUrl("file:///android_asset/index.html");
               }
           }
           EOF
 
           cat << 'EOF' > app/src/main/assets/index.html
           <!DOCTYPE html>
-          <html>
-          <head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>LankaKey</title><style>body{background:#020617;color:#fff;font-family:sans-serif;padding:16px;text-align:center;}h2{color:#f59e0b;}textarea{width:100%;height:120px;font-size:18px;margin-top:12px;background:#0f172a;color:#fff;border-radius:8px;border:1px solid #334155;padding:8px;}.btn{background:#f59e0b;color:#000;font-weight:bold;border:none;padding:8px 16px;border-radius:6px;font-size:14px;margin:4px;cursor:pointer;}</style></head>
-          <body><h2>🇱🇰 LankaKey Sinhala Keyboard</h2><p>Type in Singlish or Sinhala:</p><textarea id="t" placeholder="subha -> සුබ"></textarea><br><button class="btn" onclick="document.getElementById('t').value+='සුබ උදෑසනක් '">සුබ උදෑසනක්</button><button class="btn" onclick="document.getElementById('t').value+='ස්තූතියි '">ස්තූතියි</button><button class="btn" onclick="document.getElementById('t').value+='කොහොමද '">කොහොමද</button></body></html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+            <title>LankaKey Sinhala Keyboard</title>
+            <style>
+              * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+              body { background: #030712; color: #f9fafb; min-height: 100vh; display: flex; flex-direction: column; padding: 16px; }
+              .header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid #1f2937; margin-bottom: 16px; }
+              .title { font-size: 18px; font-weight: 800; color: #f59e0b; display: flex; align-items: center; gap: 8px; }
+              .badge { font-size: 10px; background: #065f46; color: #6ee7b7; padding: 2px 8px; border-radius: 999px; font-weight: 700; }
+              .input-box { width: 100%; height: 140px; background: #111827; border: 1.5px solid #374151; border-radius: 14px; color: #fff; font-size: 18px; padding: 14px; outline: none; resize: none; margin-bottom: 12px; }
+              .input-box:focus { border-color: #f59e0b; }
+              .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+              .chip { background: #1f2937; color: #e5e7eb; border: 1px solid #374151; padding: 8px 14px; border-radius: 10px; font-size: 14px; cursor: pointer; transition: all 0.1s; }
+              .chip:active { background: #f59e0b; color: #000; transform: scale(0.96); }
+              .action-btn { flex: 1; background: #f59e0b; color: #030712; border: none; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; }
+              .sec-btn { background: #374151; color: #fff; border: none; padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; cursor: pointer; }
+              .footer { margin-top: auto; padding-top: 16px; text-align: center; font-size: 11px; color: #6b7280; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="title">🇱🇰 LankaKey <span class="badge">PRO</span></div>
+              <span style="font-size:12px;color:#9ca3af;">Singlish & Sinhala</span>
+            </div>
+            <textarea id="output" class="input-box" placeholder="Type here in Singlish (e.g. subha -> සුබ)..."></textarea>
+            <div style="font-size:12px;color:#9ca3af;margin-bottom:8px;font-weight:600;">⚡ Quick Sinhala Badges:</div>
+            <div class="btn-row">
+              <button class="chip" onclick="addText('සුබ උදෑසනක්! ☀️')">සුබ උදෑසනක්</button>
+              <button class="chip" onclick="addText('ස්තූතියි! 🙏')">ස්තූතියි</button>
+              <button class="chip" onclick="addText('කොහොමද? 😊')">කොහොමද</button>
+              <button class="chip" onclick="addText('සුබ පැතුම්! 🎉')">සුබ පැතුම්</button>
+              <button class="chip" onclick="addText('මම එන්නම් 👍')">මම එන්නම්</button>
+              <button class="chip" onclick="addText('අඩෝ නෝ! 😱')">අඩෝ නෝ!</button>
+              <button class="chip" onclick="addText('මොකද්ද බං 😂')">මොකද්ද බං</button>
+              <button class="chip" onclick="addText('හරි මචං 🔥')">හරි මචං</button>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="action-btn" onclick="copyText()">📋 Copy Text</button>
+              <button class="sec-btn" onclick="clearText()">Clear</button>
+            </div>
+            <div class="footer">LankaKey Android Edition • 100% Free & Offline</div>
+            <script>
+              function addText(t) {
+                const el = document.getElementById('output');
+                el.value = el.value ? el.value + ' ' + t : t;
+                el.focus();
+              }
+              function clearText() {
+                document.getElementById('output').value = '';
+              }
+              function copyText() {
+                const el = document.getElementById('output');
+                if (!el.value) return;
+                navigator.clipboard.writeText(el.value).then(() => {
+                  alert('Copied to clipboard!');
+                });
+              }
+            </script>
+          </body>
+          </html>
           EOF
 
-          # Download standalone official Gradle 8.5
+      - name: Download Standalone Gradle 8.5
+        run: |
           curl -sL https://services.gradle.org/distributions/gradle-8.5-bin.zip -o gradle.zip
           unzip -q gradle.zip
 
-          # Accept SDK licenses & compile APK
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          ./gradle-8.5/bin/gradle assembleDebug
+      - name: Build Android APK
+        run: |
+          ./gradle-8.5/bin/gradle assembleDebug --no-daemon
+
+      - name: Prepare APK File
+        run: |
+          mkdir -p output-apk
+          cp app/build/outputs/apk/debug/*.apk output-apk/LankaKey-Sinhala-Keyboard.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: LankaKey-APK
-          path: app/build/outputs/apk/debug/*.apk
+          name: LankaKey-Sinhala-Keyboard-APK
+          path: output-apk/LankaKey-Sinhala-Keyboard.apk

@@ -28,6 +28,7 @@ jobs:
           mkdir -p app/src/main/assets
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/xml
+          mkdir -p app/src/main/res/drawable
 
           cat << 'EOF' > gradle.properties
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
@@ -112,6 +113,54 @@ jobs:
           </resources>
           EOF
 
+          cat << 'EOF' > app/src/main/res/drawable/ic_launcher.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path
+                  android:fillColor="#0F172A"
+                  android:pathData="M16,0 L92,0 A16,16 0 0,1 108,16 L108,92 A16,16 0 0,1 92,108 L16,108 A16,16 0 0,1 0,92 L0,16 A16,16 0 0,1 16,0 Z" />
+              <path
+                  android:fillColor="#1E293B"
+                  android:strokeColor="#F59E0B"
+                  android:strokeWidth="2.5"
+                  android:pathData="M16,26 L92,26 A12,12 0 0,1 104,38 L104,82 A12,12 0 0,1 92,94 L16,94 A12,12 0 0,1 4,82 L4,38 A12,12 0 0,1 16,26 Z" />
+              <path
+                  android:fillColor="#F59E0B"
+                  android:pathData="M14,36 h12 v10 h-12 z M32,36 h12 v10 h-12 z M50,36 h12 v10 h-12 z M68,36 h12 v10 h-12 z M86,36 h8 v10 h-8 z M14,52 h12 v10 h-12 z M32,52 h12 v10 h-12 z M50,52 h12 v10 h-12 z M68,52 h12 v10 h-12 z M86,52 h8 v10 h-8 z M28,68 h52 v10 h-52 z" />
+              <path
+                  android:fillColor="#FBBF24"
+                  android:pathData="M54,10 L59,19 L69,19 L61,25 L64,34 L54,29 L44,34 L47,25 L39,19 L49,19 Z" />
+          </vector>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/drawable/ic_launcher_round.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path
+                  android:fillColor="#0F172A"
+                  android:pathData="M54,4 A50,50 0 1,1 53.9,4 Z" />
+              <path
+                  android:fillColor="#1E293B"
+                  android:strokeColor="#F59E0B"
+                  android:strokeWidth="2.5"
+                  android:pathData="M20,32 L88,32 A10,10 0 0,1 98,42 L98,76 A10,10 0 0,1 88,86 L20,86 A10,10 0 0,1 10,76 L10,42 A10,10 0 0,1 20,32 Z" />
+              <path
+                  android:fillColor="#F59E0B"
+                  android:pathData="M18,40 h12 v8 h-12 z M34,40 h12 v8 h-12 z M50,40 h12 v8 h-12 z M66,40 h12 v8 h-12 z M82,40 h8 v8 h-8 z M18,54 h12 v8 h-12 z M34,54 h12 v8 h-12 z M50,54 h12 v8 h-12 z M66,54 h12 v8 h-12 z M82,54 h8 v8 h-8 z M30,68 h48 v8 h-48 z" />
+              <path
+                  android:fillColor="#FBBF24"
+                  android:pathData="M54,14 L58,22 L67,22 L60,27 L63,35 L54,30 L45,35 L48,27 L41,22 L50,22 Z" />
+          </vector>
+          EOF
+
           cat << 'EOF' > app/src/main/res/xml/method.xml
           <?xml version="1.0" encoding="utf-8"?>
           <input-method xmlns:android="http://schemas.android.com/apk/res/android"
@@ -131,6 +180,8 @@ jobs:
               <uses-permission android:name="android.permission.VIBRATE" />
               <application
                   android:allowBackup="true"
+                  android:icon="@drawable/ic_launcher"
+                  android:roundIcon="@drawable/ic_launcher_round"
                   android:label="@string/app_name"
                   android:supportsRtl="true"
                   android:theme="@style/AppTheme">
@@ -138,6 +189,7 @@ jobs:
                   <activity
                       android:name=".MainActivity"
                       android:label="@string/app_name"
+                      android:icon="@drawable/ic_launcher"
                       android:exported="true"
                       android:windowSoftInputMode="adjustResize">
                       <intent-filter>
@@ -149,6 +201,7 @@ jobs:
                   <service
                       android:name=".LankaKeyIME"
                       android:label="@string/ime_name"
+                      android:icon="@drawable/ic_launcher"
                       android:permission="android.permission.BIND_INPUT_METHOD"
                       android:exported="true">
                       <intent-filter>
@@ -183,6 +236,7 @@ jobs:
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
+
                   webView = new WebView(this);
                   setContentView(webView);
 
@@ -191,10 +245,9 @@ jobs:
                   settings.setDomStorageEnabled(true);
                   settings.setDatabaseEnabled(true);
                   settings.setAllowFileAccess(true);
-                  settings.setAllowContentAccess(true);
 
-                  webView.setWebChromeClient(new WebChromeClient());
                   webView.setWebViewClient(new WebViewClient());
+                  webView.setWebChromeClient(new WebChromeClient());
 
                   webView.setFocusable(true);
                   webView.setFocusableInTouchMode(true);
@@ -223,6 +276,16 @@ jobs:
                               }
                           } catch (Exception ignored) {}
                       }
+
+                      @JavascriptInterface
+                      public void setKeyboardTheme(String theme) {
+                          try {
+                              getSharedPreferences("lankakey_prefs", MODE_PRIVATE)
+                                  .edit()
+                                  .putString("theme", theme)
+                                  .apply();
+                          } catch (Exception ignored) {}
+                      }
                   }, "AndroidSetup");
 
                   webView.loadUrl("file:///android_asset/index.html");
@@ -243,15 +306,19 @@ jobs:
           package com.lankakey.keyboard;
 
           import android.content.Context;
+          import android.content.Intent;
           import android.graphics.Color;
           import android.graphics.drawable.GradientDrawable;
           import android.inputmethodservice.InputMethodService;
+          import android.os.Handler;
           import android.os.Vibrator;
           import android.util.TypedValue;
           import android.view.Gravity;
           import android.view.KeyEvent;
+          import android.view.MotionEvent;
           import android.view.View;
           import android.view.ViewGroup;
+          import android.view.inputmethod.EditorInfo;
           import android.view.inputmethod.InputConnection;
           import android.view.inputmethod.InputMethodManager;
           import android.widget.Button;
@@ -265,20 +332,39 @@ jobs:
               private LinearLayout rootLayout;
               private LinearLayout keypadLayout;
               private LinearLayout candidateLayout;
-              private String currentMode = "sinhala";
+              private String currentMode = "singlish";
               private StringBuilder buffer = new StringBuilder();
               private boolean isShift = false;
               private Vibrator vibrator;
 
+              // Theme palette colors
+              private int colorBg = Color.parseColor("#0F172A");
+              private int colorPrimary = Color.parseColor("#F59E0B");
+              private int colorKeyBg = Color.parseColor("#1E293B");
+              private int colorKeyText = Color.parseColor("#FFFFFF");
+              private int colorBorder = Color.parseColor("#334155");
+
+              // Auto-repeat backspace on hold
+              private final Handler repeatHandler = new Handler();
+              private Runnable repeatRunnable = null;
+
               private static final Map<String, String> DICT = new HashMap<>();
               static {
                   DICT.put("mama", "මම"); DICT.put("mata", "මට"); DICT.put("mage", "මගේ");
-                  DICT.put("oya", "ඔයා"); DICT.put("oyaa", "ඔයා"); DICT.put("api", "අපි");
-                  DICT.put("subha", "සුබ"); DICT.put("udhasanak", "උදෑසනක්");
-                  DICT.put("kohomada", "කොහොමද"); DICT.put("sthuthi", "ස්තූතියි");
-                  DICT.put("lanka", "ලංකා"); DICT.put("machan", "මචං");
-                  DICT.put("hari", "හරි"); DICT.put("ow", "ඔව්"); DICT.put("ne", "නේ");
-                  DICT.put("elakiri", "එළකිරි"); DICT.put("supiri", "සුපිරි");
+                  DICT.put("oya", "ඔයා"); DICT.put("oyaa", "ඔයා"); DICT.put("oyata", "ඔයාට"); DICT.put("oyage", "ඔයාගේ");
+                  DICT.put("api", "අපි"); DICT.put("apata", "අපිට"); DICT.put("ape", "අපේ");
+                  DICT.put("subha", "සුබ"); DICT.put("suba", "සුබ"); DICT.put("udhasanak", "උදෑසනක්"); DICT.put("udasanak", "උදෑසනක්");
+                  DICT.put("dhavasak", "දවසක්"); DICT.put("dawasak", "දවසක්");
+                  DICT.put("kohomada", "කොහොමද"); DICT.put("sthuthi", "ස්තූතියි"); DICT.put("sthutiyi", "ස්තූතියි");
+                  DICT.put("lanka", "ලංකා"); DICT.put("machan", "මචං"); DICT.put("hari", "හරි");
+                  DICT.put("ow", "ඔව්"); DICT.put("ne", "නෑ"); DICT.put("nae", "නෑ");
+                  DICT.put("elakiri", "එළකිරි"); DICT.put("supiri", "සුපිරි"); DICT.put("patta", "පට්ට"); DICT.put("ado", "අඩෝ");
+                  DICT.put("inna", "ඉන්න"); DICT.put("enna", "එන්න"); DICT.put("yanna", "යන්න");
+                  DICT.put("innawa", "ඉන්නවා"); DICT.put("enawa", "එනවා"); DICT.put("yanawa", "යනවා");
+                  DICT.put("karanna", "කරන්න"); DICT.put("karanawa", "කරනවා");
+                  DICT.put("monawada", "මොනවද"); DICT.put("mokakda", "මොකක්ද"); DICT.put("koheda", "කොහෙද"); DICT.put("kawuda", "කවුද");
+                  DICT.put("lassanayi", "ලස්සනයි"); DICT.put("hodhayi", "හොඳයි"); DICT.put("hondai", "හොඳයි");
+                  DICT.put("karunakarala", "කරුණාකරලා"); DICT.put("kamakna", "කමක් නෑ");
               }
 
               private static final Map<String, String> CONSONANTS = new HashMap<>();
@@ -289,7 +375,8 @@ jobs:
                   CONSONANTS.put("p", "ප"); CONSONANTS.put("b", "බ"); CONSONANTS.put("m", "ම");
                   CONSONANTS.put("y", "ය"); CONSONANTS.put("r", "ර"); CONSONANTS.put("l", "ල");
                   CONSONANTS.put("v", "ව"); CONSONANTS.put("w", "ව"); CONSONANTS.put("s", "ස");
-                  CONSONANTS.put("h", "හ"); CONSONANTS.put("sh", "ශ");
+                  CONSONANTS.put("h", "හ"); CONSONANTS.put("sh", "ශ"); CONSONANTS.put("f", "ෆ");
+                  CONSONANTS.put("gn", "ඥ"); CONSONANTS.put("kn", "ඤ");
               }
 
               @Override
@@ -310,6 +397,70 @@ jobs:
                   } catch (Exception ignored) {}
               }
 
+              private void loadThemeColors() {
+                  String th = "amber";
+                  try {
+                      th = getSharedPreferences("lankakey_prefs", Context.MODE_PRIVATE)
+                          .getString("theme", "amber");
+                  } catch (Exception ignored) {}
+
+                  if ("emerald".equals(th)) {
+                      colorBg = Color.parseColor("#022C22");
+                      colorPrimary = Color.parseColor("#10B981");
+                      colorKeyBg = Color.parseColor("#064E3B");
+                      colorKeyText = Color.parseColor("#ECFDF5");
+                      colorBorder = Color.parseColor("#047857");
+                  } else if ("cyberpunk".equals(th)) {
+                      colorBg = Color.parseColor("#09090B");
+                      colorPrimary = Color.parseColor("#06B6D4");
+                      colorKeyBg = Color.parseColor("#18181B");
+                      colorKeyText = Color.parseColor("#F0FDFA");
+                      colorBorder = Color.parseColor("#27272A");
+                  } else if ("purple".equals(th)) {
+                      colorBg = Color.parseColor("#1E1B4B");
+                      colorPrimary = Color.parseColor("#8B5CF6");
+                      colorKeyBg = Color.parseColor("#312E81");
+                      colorKeyText = Color.parseColor("#EDE9FE");
+                      colorBorder = Color.parseColor("#4338CA");
+                  } else if ("amoled".equals(th)) {
+                      colorBg = Color.parseColor("#000000");
+                      colorPrimary = Color.parseColor("#F59E0B");
+                      colorKeyBg = Color.parseColor("#111111");
+                      colorKeyText = Color.parseColor("#FFFFFF");
+                      colorBorder = Color.parseColor("#222222");
+                  } else {
+                      colorBg = Color.parseColor("#0F172A");
+                      colorPrimary = Color.parseColor("#F59E0B");
+                      colorKeyBg = Color.parseColor("#1E293B");
+                      colorKeyText = Color.parseColor("#FFFFFF");
+                      colorBorder = Color.parseColor("#334155");
+                  }
+              }
+
+              @Override
+              public void onStartInputView(EditorInfo info, boolean restarting) {
+                  super.onStartInputView(info, restarting);
+                  loadThemeColors();
+                  if (rootLayout != null) {
+                      rootLayout.setBackgroundColor(colorBg);
+                      refreshKeypad();
+                      updateSuggestions();
+                  }
+              }
+
+              @Override
+              public void onFinishInputView(boolean finishingInput) {
+                  super.onFinishInputView(finishingInput);
+                  stopRepeat();
+                  if (buffer.length() > 0) {
+                      InputConnection ic = getCurrentInputConnection();
+                      if (ic != null) {
+                          ic.finishComposingText();
+                      }
+                      buffer.setLength(0);
+                  }
+              }
+
               private void vibrate() {
                   if (vibrator != null) {
                       try { vibrator.vibrate(20); } catch (Exception ignored) {}
@@ -322,11 +473,48 @@ jobs:
                   );
               }
 
+              private void stopRepeat() {
+                  if (repeatRunnable != null) {
+                      repeatHandler.removeCallbacks(repeatRunnable);
+                      repeatRunnable = null;
+                  }
+              }
+
+              private void attachBackspaceListener(Button delBtn) {
+                  delBtn.setOnTouchListener(new View.OnTouchListener() {
+                      @Override
+                      public boolean onTouch(View v, MotionEvent event) {
+                          int action = event.getAction();
+                          if (action == MotionEvent.ACTION_DOWN) {
+                              vibrate();
+                              handleBackspace();
+                              stopRepeat();
+                              repeatRunnable = new Runnable() {
+                                  @Override
+                                  public void run() {
+                                      vibrate();
+                                      handleBackspace();
+                                      repeatHandler.postDelayed(this, 50);
+                                  }
+                              };
+                              repeatHandler.postDelayed(repeatRunnable, 350);
+                              return true;
+                          } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                              stopRepeat();
+                              return true;
+                          }
+                          return false;
+                      }
+                  });
+              }
+
               @Override
               public View onCreateInputView() {
+                  loadThemeColors();
+
                   rootLayout = new LinearLayout(this);
                   rootLayout.setOrientation(LinearLayout.VERTICAL);
-                  rootLayout.setBackgroundColor(Color.parseColor("#0F172A"));
+                  rootLayout.setBackgroundColor(colorBg);
                   rootLayout.setPadding(dp(4), dp(4), dp(4), dp(6));
 
                   LinearLayout topBar = new LinearLayout(this);
@@ -334,10 +522,11 @@ jobs:
                   topBar.setGravity(Gravity.CENTER_VERTICAL);
                   topBar.setPadding(0, 0, 0, dp(4));
 
-                  topBar.addView(createModeButton("සිංහල", "sinhala"));
                   topBar.addView(createModeButton("Singlish", "singlish"));
+                  topBar.addView(createModeButton("සිංහල", "sinhala"));
                   topBar.addView(createModeButton("ABC", "eng"));
                   topBar.addView(createModeButton("?123", "num"));
+                  topBar.addView(createAppButton());
                   topBar.addView(createGlobeButton());
 
                   rootLayout.addView(topBar);
@@ -371,16 +560,50 @@ jobs:
                   );
                   lp.setMargins(dp(2), 0, dp(2), 0);
                   btn.setLayoutParams(lp);
-                  styleButton(btn, modeName.equals(currentMode) ? "#F59E0B" : "#1E293B", modeName.equals(currentMode) ? "#0F172A" : "#94A3B8");
+
+                  boolean active = modeName.equals(currentMode);
+                  styleButton(btn, active ? colorPrimary : colorKeyBg, active ? colorBg : Color.parseColor("#94A3B8"));
 
                   btn.setOnClickListener(new View.OnClickListener() {
                       @Override
                       public void onClick(View v) {
                           vibrate();
+                          if (buffer.length() > 0) {
+                              InputConnection ic = getCurrentInputConnection();
+                              if (ic != null) {
+                                  ic.finishComposingText();
+                              }
+                              buffer.setLength(0);
+                          }
                           currentMode = modeName;
-                          buffer.setLength(0);
                           refreshKeypad();
                           updateSuggestions();
+                      }
+                  });
+                  return btn;
+              }
+
+              private View createAppButton() {
+                  Button btn = new Button(this);
+                  btn.setText("⚙️ App");
+                  btn.setTextSize(11);
+                  btn.setPadding(dp(6), dp(4), dp(6), dp(4));
+                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                      ViewGroup.LayoutParams.WRAP_CONTENT, dp(34)
+                  );
+                  lp.setMargins(dp(2), 0, dp(2), 0);
+                  btn.setLayoutParams(lp);
+                  styleButton(btn, colorKeyBg, Color.parseColor("#94A3B8"));
+
+                  btn.setOnClickListener(new View.OnClickListener() {
+                      @Override
+                      public void onClick(View v) {
+                          vibrate();
+                          try {
+                              Intent intent = new Intent(LankaKeyIME.this, MainActivity.class);
+                              intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                              startActivity(intent);
+                          } catch (Exception ignored) {}
                       }
                   });
                   return btn;
@@ -389,14 +612,14 @@ jobs:
               private View createGlobeButton() {
                   Button btn = new Button(this);
                   btn.setText("🌐 Switch");
-                  btn.setTextSize(12);
+                  btn.setTextSize(11);
                   btn.setPadding(dp(6), dp(4), dp(6), dp(4));
                   LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                       ViewGroup.LayoutParams.WRAP_CONTENT, dp(34)
                   );
                   lp.setMargins(dp(2), 0, dp(2), 0);
                   btn.setLayoutParams(lp);
-                  styleButton(btn, "#1E293B", "#94A3B8");
+                  styleButton(btn, colorKeyBg, Color.parseColor("#94A3B8"));
 
                   btn.setOnClickListener(new View.OnClickListener() {
                       @Override
@@ -411,13 +634,13 @@ jobs:
                   return btn;
               }
 
-              private void styleButton(Button btn, String bgColor, String textColor) {
+              private void styleButton(Button btn, int bgColor, int textColor) {
                   GradientDrawable gd = new GradientDrawable();
-                  gd.setColor(Color.parseColor(bgColor));
+                  gd.setColor(bgColor);
                   gd.setCornerRadius(dp(8));
-                  gd.setStroke(dp(1), Color.parseColor("#334155"));
+                  gd.setStroke(dp(1), colorBorder);
                   btn.setBackground(gd);
-                  btn.setTextColor(Color.parseColor(textColor));
+                  btn.setTextColor(textColor);
                   btn.setAllCaps(false);
               }
 
@@ -467,18 +690,12 @@ jobs:
                       );
                       lp.setMargins(dp(1), 0, dp(1), 0);
                       btn.setLayoutParams(lp);
-                      styleButton(btn, "#1E293B", "#FFFFFF");
+                      styleButton(btn, colorKeyBg, colorKeyText);
 
                       btn.setOnClickListener(new View.OnClickListener() {
                           @Override
                           public void onClick(View v) {
-                              vibrate();
-                              if ("singlish".equals(currentMode)) {
-                                  buffer.append(key);
-                                  updateSuggestions();
-                              } else {
-                                  commitText(key);
-                              }
+                              handleKeyInput(key);
                           }
                       });
                       row.addView(btn);
@@ -498,7 +715,7 @@ jobs:
                   LinearLayout.LayoutParams shiftLp = new LinearLayout.LayoutParams(0, dp(44), 1.4f);
                   shiftLp.setMargins(dp(1), 0, dp(1), 0);
                   shiftBtn.setLayoutParams(shiftLp);
-                  styleButton(shiftBtn, isShift ? "#F59E0B" : "#334155", isShift ? "#0F172A" : "#FFFFFF");
+                  styleButton(shiftBtn, isShift ? colorPrimary : colorKeyBg, isShift ? colorBg : colorKeyText);
                   shiftBtn.setOnClickListener(new View.OnClickListener() {
                       @Override
                       public void onClick(View v) {
@@ -516,18 +733,12 @@ jobs:
                       LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(44), 1.0f);
                       lp.setMargins(dp(1), 0, dp(1), 0);
                       btn.setLayoutParams(lp);
-                      styleButton(btn, "#1E293B", "#FFFFFF");
+                      styleButton(btn, colorKeyBg, colorKeyText);
 
                       btn.setOnClickListener(new View.OnClickListener() {
                           @Override
                           public void onClick(View v) {
-                              vibrate();
-                              if ("singlish".equals(currentMode)) {
-                                  buffer.append(key);
-                                  updateSuggestions();
-                              } else {
-                                  commitText(key);
-                              }
+                              handleKeyInput(key);
                           }
                       });
                       row.addView(btn);
@@ -539,14 +750,8 @@ jobs:
                   LinearLayout.LayoutParams delLp = new LinearLayout.LayoutParams(0, dp(44), 1.4f);
                   delLp.setMargins(dp(1), 0, dp(1), 0);
                   delBtn.setLayoutParams(delLp);
-                  styleButton(delBtn, "#334155", "#FFFFFF");
-                  delBtn.setOnClickListener(new View.OnClickListener() {
-                      @Override
-                      public void onClick(View v) {
-                          vibrate();
-                          handleBackspace();
-                      }
-                  });
+                  styleButton(delBtn, colorKeyBg, colorKeyText);
+                  attachBackspaceListener(delBtn);
                   row.addView(delBtn);
 
                   keypadLayout.addView(row);
@@ -561,46 +766,40 @@ jobs:
                   Button spaceBtn = new Button(this);
                   spaceBtn.setText("␣ Space (හිස්තැන)");
                   spaceBtn.setTextSize(12);
-                  LinearLayout.LayoutParams spaceLp = new LinearLayout.LayoutParams(0, dp(44), 3.5f);
+                  LinearLayout.LayoutParams spaceLp = new LinearLayout.LayoutParams(0, dp(44), 3.2f);
                   spaceLp.setMargins(dp(2), 0, dp(2), 0);
                   spaceBtn.setLayoutParams(spaceLp);
-                  styleButton(spaceBtn, "#1E293B", "#94A3B8");
+                  styleButton(spaceBtn, colorKeyBg, Color.parseColor("#94A3B8"));
                   spaceBtn.setOnClickListener(new View.OnClickListener() {
                       @Override
                       public void onClick(View v) {
-                          vibrate();
-                          if ("singlish".equals(currentMode) && buffer.length() > 0) {
-                              commitText(transliterate(buffer.toString()) + " ");
-                              buffer.setLength(0);
-                              updateSuggestions();
-                          } else {
-                              commitText(" ");
-                          }
+                          handleSpace();
                       }
                   });
                   row.addView(spaceBtn);
 
+                  // Quick delete button on bottom bar for all modes
+                  Button delBtn = new Button(this);
+                  delBtn.setText("⌫");
+                  delBtn.setTextSize(14);
+                  LinearLayout.LayoutParams delLp = new LinearLayout.LayoutParams(0, dp(44), 1.3f);
+                  delLp.setMargins(dp(2), 0, dp(2), 0);
+                  delBtn.setLayoutParams(delLp);
+                  styleButton(delBtn, colorKeyBg, colorKeyText);
+                  attachBackspaceListener(delBtn);
+                  row.addView(delBtn);
+
                   Button enterBtn = new Button(this);
                   enterBtn.setText("⏎ Enter");
                   enterBtn.setTextSize(12);
-                  LinearLayout.LayoutParams enterLp = new LinearLayout.LayoutParams(0, dp(44), 1.8f);
+                  LinearLayout.LayoutParams enterLp = new LinearLayout.LayoutParams(0, dp(44), 1.7f);
                   enterLp.setMargins(dp(2), 0, dp(2), 0);
                   enterBtn.setLayoutParams(enterLp);
-                  styleButton(enterBtn, "#D97706", "#0F172A");
+                  styleButton(enterBtn, colorPrimary, colorBg);
                   enterBtn.setOnClickListener(new View.OnClickListener() {
                       @Override
                       public void onClick(View v) {
-                          vibrate();
-                          if ("singlish".equals(currentMode) && buffer.length() > 0) {
-                              commitText(transliterate(buffer.toString()));
-                              buffer.setLength(0);
-                              updateSuggestions();
-                          }
-                          InputConnection ic = getCurrentInputConnection();
-                          if (ic != null) {
-                              ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER));
-                              ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER));
-                          }
+                          handleEnter();
                       }
                   });
                   row.addView(enterBtn);
@@ -608,19 +807,69 @@ jobs:
                   keypadLayout.addView(row);
               }
 
-              private void handleBackspace() {
-                  if ("singlish".equals(currentMode) && buffer.length() > 0) {
-                      buffer.deleteCharAt(buffer.length() - 1);
-                      updateSuggestions();
-                  } else {
+              // LIVE COMPOSING TEXT: Updates text box in real-time as user types Singlish
+              private void handleKeyInput(String key) {
+                  vibrate();
+                  if ("singlish".equals(currentMode)) {
+                      buffer.append(key);
+                      String converted = transliterate(buffer.toString());
                       InputConnection ic = getCurrentInputConnection();
                       if (ic != null) {
-                          CharSequence sel = ic.getSelectedText(0);
-                          if (sel != null && sel.length() > 0) {
-                              ic.commitText("", 1);
-                          } else {
-                              ic.deleteSurroundingText(1, 0);
-                          }
+                          ic.setComposingText(converted, 1);
+                      }
+                      updateSuggestions();
+                  } else {
+                      commitText(key);
+                  }
+              }
+
+              private void handleSpace() {
+                  vibrate();
+                  InputConnection ic = getCurrentInputConnection();
+                  if (ic != null) {
+                      if ("singlish".equals(currentMode) && buffer.length() > 0) {
+                          ic.finishComposingText();
+                      }
+                      ic.commitText(" ", 1);
+                  }
+                  buffer.setLength(0);
+                  updateSuggestions();
+              }
+
+              private void handleEnter() {
+                  vibrate();
+                  InputConnection ic = getCurrentInputConnection();
+                  if (ic != null) {
+                      if ("singlish".equals(currentMode) && buffer.length() > 0) {
+                          ic.finishComposingText();
+                      }
+                      ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER));
+                      ic.sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER));
+                  }
+                  buffer.setLength(0);
+                  updateSuggestions();
+              }
+
+              private void handleBackspace() {
+                  InputConnection ic = getCurrentInputConnection();
+                  if (ic == null) return;
+
+                  if ("singlish".equals(currentMode) && buffer.length() > 0) {
+                      buffer.deleteCharAt(buffer.length() - 1);
+                      if (buffer.length() > 0) {
+                          String converted = transliterate(buffer.toString());
+                          ic.setComposingText(converted, 1);
+                      } else {
+                          ic.setComposingText("", 1);
+                          ic.finishComposingText();
+                      }
+                      updateSuggestions();
+                  } else {
+                      CharSequence sel = ic.getSelectedText(0);
+                      if (sel != null && sel.length() > 0) {
+                          ic.commitText("", 1);
+                      } else {
+                          ic.deleteSurroundingText(1, 0);
                       }
                   }
               }
@@ -637,20 +886,40 @@ jobs:
                   candidateLayout.removeAllViews();
 
                   if (buffer.length() == 0) {
-                      TextView tip = new TextView(this);
-                      tip.setText("🇱🇰 LankaKey • සිංහල & Singlish Keyboard");
-                      tip.setTextColor(Color.parseColor("#64748B"));
-                      tip.setTextSize(12);
-                      tip.setPadding(dp(6), dp(4), dp(6), dp(4));
-                      candidateLayout.addView(tip);
+                      // Quick Sri Lankan badges bar when not actively typing a Singlish word
+                      String[] quickBadges = new String[]{
+                          "🇱🇰 LankaKey", "සුබ උදෑසනක්! ☀️", "ස්තූතියි! 🙏", "කොහොමද? 😊",
+                          "හරි මචං 🔥", "මම එන්නම් 👍", "එළකිරි ✨", "සුබ පැතුම්! 🎉", "ඕකේ 👍"
+                      };
+                      for (final String badge : quickBadges) {
+                          Button b = new Button(this);
+                          b.setText(badge);
+                          b.setTextSize(11);
+                          b.setPadding(dp(8), dp(2), dp(8), dp(2));
+                          LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                              ViewGroup.LayoutParams.WRAP_CONTENT, dp(30)
+                          );
+                          lp.setMargins(dp(2), 0, dp(2), 0);
+                          b.setLayoutParams(lp);
+                          styleButton(b, colorKeyBg, Color.parseColor("#94A3B8"));
+                          b.setOnClickListener(new View.OnClickListener() {
+                              @Override
+                              public void onClick(View v) {
+                                  vibrate();
+                                  commitText(badge + " ");
+                              }
+                          });
+                          candidateLayout.addView(b);
+                      }
                       return;
                   }
 
                   String raw = buffer.toString().toLowerCase();
                   final String converted = transliterate(raw);
 
+                  // Highlighted Converted Sinhala Chip
                   Button chip = new Button(this);
-                  chip.setText(converted);
+                  chip.setText(converted + " ↵");
                   chip.setTextSize(14);
                   chip.setPadding(dp(12), dp(4), dp(12), dp(4));
                   LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -658,18 +927,22 @@ jobs:
                   );
                   lp.setMargins(dp(2), 0, dp(4), 0);
                   chip.setLayoutParams(lp);
-                  styleButton(chip, "#0284C7", "#FFFFFF");
+                  styleButton(chip, colorPrimary, colorBg);
                   chip.setOnClickListener(new View.OnClickListener() {
                       @Override
                       public void onClick(View v) {
                           vibrate();
-                          commitText(converted + " ");
+                          InputConnection ic = getCurrentInputConnection();
+                          if (ic != null) {
+                              ic.commitText(converted + " ", 1);
+                          }
                           buffer.setLength(0);
                           updateSuggestions();
                       }
                   });
                   candidateLayout.addView(chip);
 
+                  // Raw English word chip
                   Button rawChip = new Button(this);
                   rawChip.setText(buffer.toString());
                   rawChip.setTextSize(12);
@@ -679,12 +952,15 @@ jobs:
                   );
                   rlp.setMargins(dp(2), 0, dp(4), 0);
                   rawChip.setLayoutParams(rlp);
-                  styleButton(rawChip, "#334155", "#94A3B8");
+                  styleButton(rawChip, colorKeyBg, Color.parseColor("#94A3B8"));
                   rawChip.setOnClickListener(new View.OnClickListener() {
                       @Override
                       public void onClick(View v) {
                           vibrate();
-                          commitText(buffer.toString() + " ");
+                          InputConnection ic = getCurrentInputConnection();
+                          if (ic != null) {
+                              ic.commitText(buffer.toString() + " ", 1);
+                          }
                           buffer.setLength(0);
                           updateSuggestions();
                       }
@@ -706,6 +982,12 @@ jobs:
                           if ("dh".equals(pair)) { sb.append("ද"); i += 2; continue; }
                           if ("sh".equals(pair)) { sb.append("ශ"); i += 2; continue; }
                           if ("ch".equals(pair)) { sb.append("ච"); i += 2; continue; }
+                          if ("ph".equals(pair)) { sb.append("ෆ"); i += 2; continue; }
+                          if ("kh".equals(pair)) { sb.append("ඛ"); i += 2; continue; }
+                          if ("gh".equals(pair)) { sb.append("ඝ"); i += 2; continue; }
+                          if ("bh".equals(pair)) { sb.append("භ"); i += 2; continue; }
+                          if ("gn".equals(pair)) { sb.append("ඥ"); i += 2; continue; }
+                          if ("kn".equals(pair)) { sb.append("ඤ"); i += 2; continue; }
                       }
                       String ch = String.valueOf(s.charAt(i));
                       if (CONSONANTS.containsKey(ch)) {
@@ -715,7 +997,10 @@ jobs:
                               char next = s.charAt(i);
                               if (next == 'a') {
                                   if (i + 1 < s.length && s.charAt(i + 1) == 'a') { sb.append(base).append("ා"); i += 2; }
-                                  else { sb.append(base); i++; }
+                                  else if (i + 1 < s.length && s.charAt(i + 1) == 'e') {
+                                      if (i + 2 < s.length && s.charAt(i + 2) == 'e') { sb.append(base).append("ෑ"); i += 3; }
+                                      else { sb.append(base).append("ැ"); i += 2; }
+                                  } else { sb.append(base); i++; }
                               } else if (next == 'i') {
                                   if (i + 1 < s.length && s.charAt(i + 1) == 'i') { sb.append(base).append("ී"); i += 2; }
                                   else { sb.append(base).append("ි"); i++; }
@@ -723,10 +1008,11 @@ jobs:
                                   if (i + 1 < s.length && s.charAt(i + 1) == 'u') { sb.append(base).append("ූ"); i += 2; }
                                   else { sb.append(base).append("ු"); i++; }
                               } else if (next == 'e') {
-                                  if (i + 1 < s.length && s.charAt(i + 1) == 'e') { sb.append(base).append("ේ"); i += 2; }
+                                  if (i + 1 < s.length && s.charAt(i + 1) == 'e') { sb.append(base).append("ී"); i += 2; }
+                                  else if (i + 1 < s.length && s.charAt(i + 1) == 'i') { sb.append(base).append("ේ"); i += 2; }
                                   else { sb.append(base).append("ෙ"); i++; }
                               } else if (next == 'o') {
-                                  if (i + 1 < s.length && s.charAt(i + 1) == 'o') { sb.append(base).append("ෝ"); i += 2; }
+                                  if (i + 1 < s.length && s.charAt(i + 1) == 'o') { sb.append(base).append("ූ"); i += 2; }
                                   else { sb.append(base).append("ො"); i++; }
                               } else {
                                   sb.append(base).append("්");
@@ -735,13 +1021,26 @@ jobs:
                               sb.append(base);
                           }
                       } else {
-                          if ("a".equals(ch)) sb.append("අ");
-                          else if ("e".equals(ch)) sb.append("එ");
-                          else if ("i".equals(ch)) sb.append("ඉ");
-                          else if ("o".equals(ch)) sb.append("ඔ");
-                          else if ("u".equals(ch)) sb.append("උ");
-                          else sb.append(ch);
-                          i++;
+                          if ("a".equals(ch)) {
+                              if (i + 1 < s.length && s.charAt(i + 1) == 'a') { sb.append("ආ"); i += 2; }
+                              else if (i + 1 < s.length && s.charAt(i + 1) == 'e') { sb.append("ඇ"); i += 2; }
+                              else { sb.append("අ"); i++; }
+                          } else if ("e".equals(ch)) {
+                              if (i + 1 < s.length && s.charAt(i + 1) == 'e') { sb.append("ඊ"); i += 2; }
+                              else { sb.append("එ"); i++; }
+                          } else if ("i".equals(ch)) {
+                              if (i + 1 < s.length && s.charAt(i + 1) == 'i') { sb.append("ඊ"); i += 2; }
+                              else { sb.append("ඉ"); i++; }
+                          } else if ("o".equals(ch)) {
+                              if (i + 1 < s.length && s.charAt(i + 1) == 'o') { sb.append("ඌ"); i += 2; }
+                              else { sb.append("ඔ"); i++; }
+                          } else if ("u".equals(ch)) {
+                              if (i + 1 < s.length && s.charAt(i + 1) == 'u') { sb.append("ඌ"); i += 2; }
+                              else { sb.append("උ"); i++; }
+                          } else {
+                              sb.append(ch);
+                              i++;
+                          }
                       }
                   }
                   return sb.toString();
@@ -774,7 +1073,8 @@ jobs:
 
               body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; transition: background 0.3s; }
               
-              header { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+              /* Header */
+              header { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
               .logo { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 18px; color: var(--text); }
               .logo-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--primary); color: #020617; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; }
               .nav-bar { display: flex; gap: 6px; overflow-x: auto; padding: 10px 16px 4px; scrollbar-width: none; }
@@ -782,8 +1082,10 @@ jobs:
               .nav-btn { background: var(--card-bg); color: var(--text-muted); border: 1px solid var(--border); padding: 6px 12px; border-radius: 10px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; display: flex; align-items: center; gap: 4px; }
               .nav-btn.active, .nav-btn:hover { background: var(--primary); color: #020617; border-color: var(--primary); }
 
+              /* Content */
               .main-container { flex: 1; padding: 12px 16px 24px; max-width: 600px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 12px; }
 
+              /* Setup Wizard Card */
               .setup-card { background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(15, 23, 42, 0.9)); border: 1.5px solid var(--primary); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
               .setup-head { display: flex; align-items: center; justify-content: space-between; }
               .setup-title { font-size: 14px; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 6px; }
@@ -792,6 +1094,7 @@ jobs:
               .btn-setup { background: var(--primary); color: #020617; border: none; padding: 10px 12px; border-radius: 10px; font-size: 12px; font-weight: 800; cursor: pointer; text-align: center; }
               .btn-setup.blue { background: #3b82f6; color: #fff; }
 
+              /* Studio Card */
               .studio-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
               .studio-head { display: flex; align-items: center; justify-content: space-between; }
               .studio-modes { display: flex; background: #020617; padding: 3px; border-radius: 8px; border: 1px solid var(--border); }
@@ -801,24 +1104,29 @@ jobs:
               .input-area { width: 100%; min-height: 120px; background: #020617; border: 1.5px solid var(--border); border-radius: 12px; color: #fff; font-size: 17px; padding: 12px; outline: none; resize: vertical; line-height: 1.5; }
               .input-area:focus { border-color: var(--primary); }
 
+              /* Suggestions bar */
               .sug-bar { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0; scrollbar-width: none; min-height: 36px; align-items: center; }
               .sug-pill { background: #1e293b; color: #38bdf8; border: 1px solid #334155; padding: 5px 12px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
               .sug-pill:active { background: var(--primary); color: #020617; }
 
+              /* Badges */
               .badge-row { display: flex; flex-wrap: wrap; gap: 6px; }
               .badge-btn { background: #1e293b; color: var(--text); border: 1px solid var(--border); padding: 6px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; }
               .badge-btn:active { background: var(--primary); color: #000; }
 
+              /* Action Buttons */
               .btn-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
               .btn-act { background: #1e293b; color: var(--text); border: 1px solid var(--border); padding: 10px 6px; border-radius: 10px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
               .btn-act.prime { background: var(--primary); color: #020617; border-color: var(--primary); }
               .btn-act.wa { background: #25d366; color: #020617; border-color: #25d366; }
 
+              /* Wijesekara Keypad preview */
               .wije-grid { display: flex; flex-direction: column; gap: 4px; padding: 8px; background: #020617; border-radius: 12px; border: 1px solid var(--border); }
               .wije-row { display: flex; gap: 3px; justify-content: center; }
               .w-key { flex: 1; height: 36px; background: #1e293b; color: #fff; border: 1px solid #334155; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; }
               .w-key:active { background: var(--primary); color: #020617; }
 
+              /* Modals */
               .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); z-index: 100; display: none; align-items: center; justify-content: center; padding: 16px; }
               .modal-box { background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 20px; max-width: 480px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
               .modal-head { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
@@ -848,6 +1156,7 @@ jobs:
             </div>
 
             <div class="main-container">
+              <!-- Keyboard Activation Helper -->
               <div class="setup-card">
                 <div class="setup-head">
                   <div class="setup-title">📱 System Keyboard Status</div>
@@ -862,6 +1171,7 @@ jobs:
                 </div>
               </div>
 
+              <!-- Main Typing Studio -->
               <div class="studio-card">
                 <div class="studio-head">
                   <span style="font-size:13px; font-weight:800; color:#fff;">✍️ Sinhala Typing Studio</span>
@@ -889,6 +1199,7 @@ jobs:
                   <button class="badge-btn" onclick="insertBadge('එළකිරි සුපිරි ✨')">එළකිරි ✨</button>
                 </div>
 
+                <!-- Action buttons -->
                 <div class="btn-grid">
                   <button class="btn-act prime" onclick="copyText()">
                     <span>📋</span>
@@ -908,6 +1219,7 @@ jobs:
                   </button>
                 </div>
 
+                <!-- Wijesekara Keypad (when selected) -->
                 <div id="wije-container" style="display:none;" class="wije-grid">
                   <div class="wije-row">
                     <button class="w-key" onclick="insertChar('අ')">අ</button>
@@ -972,6 +1284,7 @@ jobs:
             </div>
 
             <!-- MODALS -->
+            <!-- 1. Themes Modal -->
             <div id="modal-themes" class="modal-backdrop">
               <div class="modal-box">
                 <div class="modal-head">
@@ -989,6 +1302,7 @@ jobs:
               </div>
             </div>
 
+            <!-- 2. SMS Shield Modal -->
             <div id="modal-sms" class="modal-backdrop">
               <div class="modal-box">
                 <div class="modal-head">
@@ -1005,6 +1319,7 @@ jobs:
               </div>
             </div>
 
+            <!-- 3. NIC Decoder Modal -->
             <div id="modal-nic" class="modal-backdrop">
               <div class="modal-box">
                 <div class="modal-head">
@@ -1017,6 +1332,7 @@ jobs:
               </div>
             </div>
 
+            <!-- 4. Singlish Cheat Sheet Modal -->
             <div id="modal-cheat" class="modal-backdrop">
               <div class="modal-box">
                 <div class="modal-head">
@@ -1032,6 +1348,7 @@ jobs:
               </div>
             </div>
 
+            <!-- 5. Setup Modal -->
             <div id="modal-setup" class="modal-backdrop">
               <div class="modal-box">
                 <div class="modal-head">
@@ -1142,8 +1459,8 @@ jobs:
                   const sugBar = document.getElementById('sug-bar');
                   if (lastWord && lastWord.trim().length > 0 && /^[a-zA-Z]+$/.test(lastWord)) {
                     const converted = transliterateWord(lastWord);
-                    sugBar.innerHTML = '<button class="sug-pill" onclick="acceptSuggestion(\\'' + converted + '\\')">' + converted + ' ↵</button>' +
-                                       '<button class="sug-pill" style="color:#94a3b8;" onclick="acceptSuggestion(\\'' + lastWord + '\\')">' + lastWord + '</button>';
+                    sugBar.innerHTML = '<button class="sug-pill" onclick="acceptSuggestion(\'' + converted + '\')">' + converted + ' ↵</button>' +
+                                       '<button class="sug-pill" style="color:#94a3b8;" onclick="acceptSuggestion(\'' + lastWord + '\')">' + lastWord + '</button>';
                   } else {
                     sugBar.innerHTML = '<span style="font-size:11px; color:#64748b;">Singlish phonetic conversion active...</span>';
                   }
@@ -1231,6 +1548,9 @@ jobs:
               function setTheme(th) {
                 document.body.className = '';
                 if (th !== 'default') document.body.classList.add('theme-' + th);
+                if (window.AndroidSetup && window.AndroidSetup.setKeyboardTheme) {
+                  window.AndroidSetup.setKeyboardTheme(th);
+                }
                 closeModals();
               }
 
